@@ -9,19 +9,9 @@
 #define INC_XBEE_H_
 
 #include "main.h"
+#include <stdbool.h>
 
-//Flags structure to monitor XBee status
-struct sFlags
-{
-	bool connected_net;
-	bool connected_mqtt;
-	bool waiting_ping_resp;
-	bool transmit_ready;
-	bool at_enabled;
-	bool xbee_fr;
-	bool at_ok;
-};
-struct sFlags FLAG;
+
 
 //AT commands to send to the Xbee Module
 extern uint8_t AT_ENTER[]; //Command to enter AT mode
@@ -31,6 +21,10 @@ extern uint8_t ATSD_R[]; //AT soft reset command
 extern uint8_t ATSD_S[]; //AT shutdown command
 extern uint8_t ATFR[]; //Force reset command
 extern uint8_t ATAI[]; //Association indication command, tells state of connection
+extern uint8_t ATAN[];
+extern uint8_t ATI[];
+extern uint8_t ATVR[];
+extern uint8_t ATAN_SETUP[];
 
 
 extern uint8_t AT_CONNECTED[]; //Connected to internet
@@ -48,10 +42,10 @@ extern uint8_t AT_UPD[]; //Update in progress
 extern uint8_t AT_TST[]; //Regulatory testing enabled
 extern uint8_t AT_INI[]; //Initializing
 
-extern uint8_t uart_rx[4]; //UART receive Buffer
+extern uint8_t uart_rx[16]; //UART receive Buffer
 extern UART_HandleTypeDef huart5;
 
-bool Enter_AT();
+void Enter_AT();
 void CheckInternet();
 
 #endif /* INC_XBEE_H_ */

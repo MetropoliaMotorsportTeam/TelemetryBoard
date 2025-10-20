@@ -15,13 +15,31 @@
 
 //AT commands to send to the Xbee Module
 uint8_t AT_ENTER[] = {'+','+','+'}; //Command to enter AT mode
+uint8_t AT_ENTER_TEST[] = "+++";
 uint8_t AT_EXIT[] = { 'A', 'T', 'C', 'N', 0x0D };
 uint8_t AT_OK[] = {'O', 'K', 0x0D}; //AT OK response
 uint8_t ATSD_R[] = {'A', 'T', 'S', 'D','1', 0x0D}; //AT soft reset command
 uint8_t ATSD_S[] = {'A', 'T', 'S', 'D','0', 0x0D}; //AT shutdown command
 uint8_t ATFR[] = {'A', 'T', 'F', 'R', 0x0D}; //Force reset command
 uint8_t ATAI[] = {'A', 'T', 'A', 'I', 0x0D}; //Association indication command, tells state of connection
+uint8_t ATAN[] = {'A', 'T', 'N', '?', 0x0D};
+uint8_t ATI[] = {'A', 'T', 'I', 0x0D};
+uint8_t ATVR[] = {'A', 'T', 'V', 'R', 0x0D};
+uint8_t ATAN_SETUP[] = {'A','T','A','N','A','P','N','=','i','n','t','e','r','n','e','t', 0x0D};
+uint8_t ATWR[] = "ATWR\r";
 
+//Flags structure to monitor XBee status
+struct sFlags
+{
+	bool connected_net;
+	bool connected_mqtt;
+	bool waiting_ping_resp;
+	bool transmit_ready;
+	bool at_enabled;
+	bool xbee_fr;
+	bool at_ok;
+};
+struct sFlags FLAG;
 
 uint8_t AT_CONNECTED[] = {'0', 0x0D}; //Connected to internet
 uint8_t AT_REG[] = {'2', '2', 0x0D}; //Registerring to cellular network
@@ -38,17 +56,15 @@ uint8_t AT_UPD[] = {'3', '0', 0x0D}; //Update in progress
 uint8_t AT_TST[] = {'3', '1', 0x0D}; //Regulatory testing enabled
 uint8_t AT_INI[] = {'F', 'F', 0x0D}; //Initializing
 
-uint8_t uart_rx[4]; //UART receive Buffer
-uint16_t last_element = 14;	 //Last array element location of rx_transmit
-uint8_t *id_array[128];  // Array of pointers indicating location of any given ID in rx_transmit
-uint8_t timeout_count = 0; //Timeout counter
+uint8_t uart_rx[16]; //UART receive Buffer
 
 //Enters AT Mode on XBee
-bool Enter_AT(){
-	HAL_UART_Transmit_IT(&huart5, AT_ENTER, sizeof(AT_ENTER));
+void Enter_AT(){
+	HAL_UART_Transmit_IT(&huart5, AT_ENTER_TEST, sizeof(AT_ENTER_TEST));
 	while (!FLAG.at_ok){
 		__WFI();
 	}
+	HAL_UART_Transmit_IT(&huart5, ATAN_SETUP, sizeof(ATAN_SETUP));
 }
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
@@ -94,18 +110,17 @@ void CheckInternet() {
 	if (FLAG.xbee_fr == true)
 		return; //Returns function if reset flag is true, or else it will be stuck in here for a while
 	while (!FLAG.connected_net) {
-		HAL_UART_Transmit_IT(&huart4, AT_ENTER, sizeof(AT_ENTER));
+		HAL_UART_Transmit_IT(&huart5, AT_ENTER, sizeof(AT_ENTER));
 		while (!FLAG.at_ok) {
 			__WFI();
 		}
 
 		HAL_Delay(2000);
 
+
 		while (FLAG.at_ok && !FLAG.connected_net) {
-			HAL_UART_Transmit_IT(&huart4, ATAI, sizeof(ATAI));
-			HAL_GPIO_WritePin(Yellow_GPIO_Port, Yellow_Pin, GPIO_PIN_SET);
+			HAL_UART_Transmit_IT(&huart5, ATAI, sizeof(ATAI));
 			HAL_Delay(500);
-			HAL_GPIO_WritePin(Yellow_GPIO_Port, Yellow_Pin, GPIO_PIN_RESET);
 			count++;
 
 			if (count > 4) { //If over five AT AI messages has been sent without returning a connected value, there will be a 10 second delay until the next transmit
@@ -119,8 +134,5 @@ void CheckInternet() {
 			}
 		}
 	}
-	HAL_UART_Transmit_IT(&huart4, AT_EXIT, sizeof(AT_EXIT));
-	if(FLAG.connected_net) {
-		HAL_GPIO_WritePin(Yellow_GPIO_Port, Yellow_Pin, GPIO_PIN_SET);
-	}
+	HAL_UART_Transmit_IT(&huart5, AT_EXIT, sizeof(AT_EXIT));
 }

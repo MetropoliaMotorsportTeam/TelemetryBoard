@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "xbee.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -104,7 +104,7 @@ int main(void)
   MX_SPI1_Init();
   MX_UART5_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_UARTEx_ReceiveToIdle_IT(&huart5, uart_rx, sizeof(uart_rx));
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -112,7 +112,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+	  //CheckInternet();
+	  Enter_AT();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
