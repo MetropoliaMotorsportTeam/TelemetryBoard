@@ -7,9 +7,13 @@
 
 
 
-#include "stdio.h"
-#include "string.h"
-#include "stdbool.h"
+
+
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
+#include "xbee.h"
+
 
 
 //AT commands to send to the Xbee Module
@@ -41,3 +45,83 @@ uint8_t uart_rx[4]; //UART receive Buffer
 uint16_t last_element = 14;	 //Last array element location of rx_transmit
 uint8_t *id_array[128];  // Array of pointers indicating location of any given ID in rx_transmit
 uint8_t timeout_count = 0; //Timeout counter
+uint8_t uart_rx[16]; //UART receive Buffer
+
+//Enters AT Mode on XBee
+void Enter_AT(){
+	HAL_UART_Transmit_IT(&huart5, AT_ENTER_TEST, sizeof(AT_ENTER_TEST));
+	while (!FLAG.at_ok){
+		__WFI();
+	}
+	HAL_UART_Transmit_IT(&huart5, ATAI, sizeof(ATAI));
+}
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
+	HAL_UARTEx_ReceiveToIdle_IT(&huart5, uart_rx, sizeof(uart_rx));
+		switch(Size)
+		{
+//		case 4:
+//			if(!memcmp(uart_rx, MQTT_PUBACK, sizeof(MQTT_PUBACK))){
+//				FLAG.transmit_ready = true;
+//				timeout_count = 0;
+//			}
+//			else if(!memcmp(uart_rx, MQTT_CONACK, sizeof(MQTT_CONACK))){
+//				FLAG.connected_mqtt = true;
+//				FLAG.transmit_ready = true;
+//			}
+//			FLAG.at_ok = false;
+//			memset(uart_rx, 0x00, sizeof(uart_rx));
+//			break;
+		case 3:
+			if(!memcmp(uart_rx, AT_OK, sizeof(AT_OK)))
+				FLAG.at_ok = true;
+			else
+				FLAG.at_ok = false;
+			memset(uart_rx, 0x00, sizeof(uart_rx));
+			break;
+		case 2:
+			if(!memcmp(uart_rx, AT_CONNECTED, sizeof(AT_CONNECTED)))
+				FLAG.connected_net = true;
+			FLAG.at_ok = false;
+			memset(uart_rx, 0x00, sizeof(uart_rx));
+			break;
+		case 1:
+			FLAG.at_ok = false;
+			memset(uart_rx, 0x00, sizeof(uart_rx));
+			break;
+		default:
+			break;
+		}
+}
+
+void CheckInternet() {
+	int count = 0;
+	if (FLAG.xbee_fr == true)
+		return; //Returns function if reset flag is true, or else it will be stuck in here for a while
+	while (!FLAG.connected_net) {
+		HAL_UART_Transmit_IT(&huart5, AT_ENTER, sizeof(AT_ENTER));
+		while (!FLAG.at_ok) {
+			__WFI();
+		}
+
+		HAL_Delay(2000);
+
+
+		while (FLAG.at_ok && !FLAG.connected_net) {
+			HAL_UART_Transmit_IT(&huart5, ATAI, sizeof(ATAI));
+			HAL_Delay(500);
+			count++;
+
+			if (count > 4) { //If over five AT AI messages has been sent without returning a connected value, there will be a 10 second delay until the next transmit
+				HAL_Delay(10000);
+				FLAG.at_ok = false;
+			}
+			if (count > 10) {
+				FLAG.xbee_fr = true; //If over 10 AT AI messages have been sent without a connected value,  he xbee will be reset
+				count = 0;
+				return;
+			}
+		}
+	}
+	HAL_UART_Transmit_IT(&huart5, AT_EXIT, sizeof(AT_EXIT));
+}

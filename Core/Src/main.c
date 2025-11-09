@@ -78,7 +78,12 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+	FLAG.connected_net = false;
+	FLAG.connected_mqtt = false;
+	FLAG.waiting_ping_resp = false;
+	FLAG.transmit_ready = false;
+	FLAG.xbee_fr = false;
+	FLAG.at_ok = false;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -112,7 +117,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+	  CheckInternet();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -183,7 +188,7 @@ static void MX_FDCAN2_Init(void)
   hfdcan2.Init.NominalPrescaler = 1;
   hfdcan2.Init.NominalSyncJumpWidth = 1;
   hfdcan2.Init.NominalTimeSeg1 = 13;
-  hfdcan2.Init.NominalTimeSeg2 = 2;
+  hfdcan2.Init.NominalTimeSeg2 = 1;
   hfdcan2.Init.DataPrescaler = 1;
   hfdcan2.Init.DataSyncJumpWidth = 1;
   hfdcan2.Init.DataTimeSeg1 = 1;
@@ -253,7 +258,7 @@ static void MX_FDCAN3_Init(void)
   hfdcan3.Init.NominalPrescaler = 1;
   hfdcan3.Init.NominalSyncJumpWidth = 1;
   hfdcan3.Init.NominalTimeSeg1 = 13;
-  hfdcan3.Init.NominalTimeSeg2 = 2;
+  hfdcan3.Init.NominalTimeSeg2 = 1;
   hfdcan3.Init.DataPrescaler = 1;
   hfdcan3.Init.DataSyncJumpWidth = 1;
   hfdcan3.Init.DataTimeSeg1 = 1;
@@ -349,7 +354,7 @@ static void MX_UART5_Init(void)
   huart5.Init.StopBits = UART_STOPBITS_1;
   huart5.Init.Parity = UART_PARITY_NONE;
   huart5.Init.Mode = UART_MODE_TX_RX;
-  huart5.Init.HwFlowCtl = UART_HWCONTROL_RTS_CTS;
+  huart5.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart5.Init.OverSampling = UART_OVERSAMPLING_16;
   huart5.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart5.Init.ClockPrescaler = UART_PRESCALER_DIV1;
@@ -384,8 +389,8 @@ static void MX_UART5_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -413,8 +418,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -435,8 +440,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
