@@ -111,6 +111,7 @@ int main(void)
   MX_SPI1_Init();
   MX_UART5_Init();
   /* USER CODE BEGIN 2 */
+  HAL_UARTEx_ReceiveToIdle_IT(&huart5, uart_rx, sizeof(uart_rx));
 
   /* USER CODE END 2 */
 
@@ -119,7 +120,13 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  CheckInternet();
+//	  char plusCmd[] = "+++";
+//	  HAL_Delay(1100);
+//	  HAL_UART_Transmit_IT(&huart5, (uint8_t*)plusCmd, strlen(plusCmd));
+//	  HAL_Delay(1100);
+	  //CheckInternet();
+	  Send_MQTT();
+	  //Send_ATVR_API();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -351,7 +358,7 @@ static void MX_UART5_Init(void)
 
   /* USER CODE END UART5_Init 1 */
   huart5.Instance = UART5;
-  huart5.Init.BaudRate = 9600;
+  huart5.Init.BaudRate = 115200;
   huart5.Init.WordLength = UART_WORDLENGTH_8B;
   huart5.Init.StopBits = UART_STOPBITS_1;
   huart5.Init.Parity = UART_PARITY_NONE;

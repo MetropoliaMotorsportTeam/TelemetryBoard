@@ -46,7 +46,37 @@ uint8_t uart_rx[16]; //UART receive Buffer
 uint16_t last_element = 14;	 //Last array element location of rx_transmit
 uint8_t *id_array[128];  // Array of pointers indicating location of any given ID in rx_transmit
 uint8_t timeout_count = 0; //Timeout counter
-uint8_t uart_rx[16]; //UART receive Buffer
+
+// --- ATDE = "test.mosquitto.org"
+uint8_t XBEE_ATDE[] = {
+    0x7E,0x00,0x1B,0x08,0x01,0x44,0x45,
+    0x74,0x65,0x73,0x74,0x2E,0x6D,0x6F,0x73,0x71,0x75,0x69,0x74,0x74,0x6F,0x2E,0x6F,0x72,0x67,
+    0x34
+};
+
+// --- ATDL = 1883
+uint8_t XBEE_ATDL[] = {
+    0x7E,0x00,0x06,0x08,0x01,0x44,0x4C,0x07,0x5B,0x6F
+};
+
+// --- ATMQTTCON
+uint8_t XBEE_MQTTCON[] = {
+    0x10, 0x10, 0x00, 0x04,
+    0x4D, 0x51, 0x54, 0x54,
+    0x04, 0x02, 0x00, 0x3C,
+    0x00, 0x04, 0x44, 0x49,
+    0x47, 0x49
+};
+
+// --- ATMQTTPUB="xbee/test","Hello STM32"
+uint8_t XBEE_MQTTPUB[] = {
+    0x30, 0x14, 0x00, 0x09,
+    0x78, 0x62, 0x65, 0x65,
+    0x2F, 0x74, 0x65, 0x73,
+    0x74, 0x48, 0x65, 0x6C,
+    0x6C, 0x6F, 0x58, 0x42,
+    0x65, 0x65
+};
 
 //Enters AT Mode on XBee
 void Enter_AT(){
@@ -55,6 +85,25 @@ void Enter_AT(){
 		__WFI();
 	}
 	HAL_UART_Transmit_IT(&huart5, ATAI, sizeof(ATAI));
+}
+
+void Send_MQTT(){
+//	HAL_UART_Transmit(&huart5, XBEE_ATDE, sizeof(XBEE_ATDE), HAL_MAX_DELAY);
+//	HAL_Delay(1000);
+//
+//	HAL_UART_Transmit(&huart5, XBEE_ATDL, sizeof(XBEE_ATDL), HAL_MAX_DELAY);
+//	HAL_Delay(1000);
+
+	HAL_UART_Transmit(&huart5, XBEE_MQTTCON, sizeof(XBEE_MQTTCON), HAL_MAX_DELAY);
+	HAL_Delay(500);
+
+	HAL_UART_Transmit(&huart5, XBEE_MQTTPUB, sizeof(XBEE_MQTTPUB), HAL_MAX_DELAY);
+	HAL_Delay(5000);
+}
+
+void Send_ATVR_API(){
+	uint8_t XBEE_ATVR[] = {0x7E,0x00,0x04,0x08,0x01,0x56,0x52,0x4E};
+	HAL_UART_Transmit(&huart5, XBEE_ATVR, sizeof(XBEE_ATVR), HAL_MAX_DELAY);
 }
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){

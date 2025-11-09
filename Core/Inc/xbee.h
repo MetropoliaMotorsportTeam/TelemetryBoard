@@ -51,11 +51,19 @@ extern uint8_t AT_UPD[]; //Update in progress
 extern uint8_t AT_TST[]; //Regulatory testing enabled
 extern uint8_t AT_INI[]; //Initializing
 
+extern uint8_t XBEE_ATVR[];
+extern uint8_t XBEE_ATDE[];
+extern uint8_t XBEE_ATDL[];
+extern uint8_t XBEE_MQTTCON[];
+extern uint8_t XBEE_MQTTPUB[];
+
 extern uint8_t uart_rx[16]; //UART receive Buffer
 extern UART_HandleTypeDef huart5;
 
 void Enter_AT();
 void CheckInternet();
+void Send_MQTT();
+void Send_ATVR_API();
 
 
 #endif /* INC_XBEE_H_ */
