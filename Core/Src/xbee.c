@@ -41,7 +41,7 @@ uint8_t AT_UPD[] = {'3', '0', 0x0D}; //Update in progress
 uint8_t AT_TST[] = {'3', '1', 0x0D}; //Regulatory testing enabled
 uint8_t AT_INI[] = {'F', 'F', 0x0D}; //Initializing
 
-uint8_t uart_rx[4]; //UART receive Buffer
+uint8_t uart_rx[16]; //UART receive Buffer
 uint16_t last_element = 14;	 //Last array element location of rx_transmit
 uint8_t *id_array[128];  // Array of pointers indicating location of any given ID in rx_transmit
 uint8_t timeout_count = 0; //Timeout counter
@@ -49,7 +49,7 @@ uint8_t uart_rx[16]; //UART receive Buffer
 
 //Enters AT Mode on XBee
 void Enter_AT(){
-	HAL_UART_Transmit_IT(&huart5, AT_ENTER_TEST, sizeof(AT_ENTER_TEST));
+	HAL_UART_Transmit_IT(&huart5, AT_ENTER, sizeof(AT_ENTER));
 	while (!FLAG.at_ok){
 		__WFI();
 	}
