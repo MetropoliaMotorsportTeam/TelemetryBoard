@@ -25,7 +25,7 @@ extern uint8_t ATI[];
 extern uint8_t ATVR[];
 extern uint8_t ATAN_SETUP[];
 
-struct sFlags {
+typedef struct sFlags {
     bool connected_net;
     bool connected_mqtt;
     bool waiting_ping_resp;
@@ -33,9 +33,7 @@ struct sFlags {
     bool at_enabled;
     bool xbee_fr;
     bool at_ok;
-}FLAG;
-
-
+}sFlags;
 
 
 extern uint8_t AT_CONNECTED[]; //Connected to internet

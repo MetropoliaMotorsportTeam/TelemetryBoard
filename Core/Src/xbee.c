@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include "xbee.h"
 
+sFlags FLAG;
 
 
 //AT commands to send to the Xbee Module

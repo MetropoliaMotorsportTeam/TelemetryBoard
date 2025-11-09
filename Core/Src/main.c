@@ -52,6 +52,8 @@ FDCAN_TxHeaderTypeDef TxHeader;
 
 FDCAN_RxHeaderTypeDef RxHeader;
 
+extern sFlags FLAG;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
