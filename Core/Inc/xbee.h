@@ -9,6 +9,9 @@
 #define INC_XBEE_H_
 
 #include "main.h"
+#include "MQTTNetwork.h"
+#include "Timer.h"
+#include "MQTTClient.h"
 #include <stdbool.h>
 
 
@@ -51,11 +54,16 @@ extern uint8_t AT_UPD[]; //Update in progress
 extern uint8_t AT_TST[]; //Regulatory testing enabled
 extern uint8_t AT_INI[]; //Initializing
 
+//MQTT Responses
+extern uint8_t MQTT_CONACK[]; //Connection acknowlegement response
+extern uint8_t MQTT_PUBACK[]; //Message published acknowlegement response
+extern uint8_t MQTT_PINGRESP[];		   // ping response
+
 extern uint8_t XBEE_ATVR[];
 extern uint8_t XBEE_ATDE[];
 extern uint8_t XBEE_ATDL[];
-extern uint8_t XBEE_MQTTCON[];
-extern uint8_t XBEE_MQTTPUB[];
+extern uint8_t MQTT_CONNECT_XBEE[];
+extern uint8_t MQTT_PUBLISH_XBEE[];
 
 extern uint8_t uart_rx[16]; //UART receive Buffer
 extern UART_HandleTypeDef huart5;
@@ -64,6 +72,13 @@ void Enter_AT();
 void CheckInternet();
 void Send_MQTT();
 void Send_ATVR_API();
+
+void MQTT_Init(void);
+void MQTT_Connect(void);
+int MQTT_Connect_Paho(void);
+void MQTT_Publish();
+int MQTT_Publish_Paho(const char* topic, const char* payload);
+
 
 
 #endif /* INC_XBEE_H_ */

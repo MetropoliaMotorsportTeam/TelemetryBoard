@@ -16,6 +16,14 @@
 
 sFlags FLAG;
 
+static Network network;
+static MQTTClient client;
+
+static unsigned char sendbuf[256];
+static unsigned char readbuf[256];
+
+#define MQTT_CLIENT_ID  "STM32_XBEE"
+#define MQTT_KEEPALIVE  30
 
 //AT commands to send to the Xbee Module
 uint8_t AT_ENTER[] = {'+','+','+'}; //Command to enter AT mode
@@ -47,6 +55,11 @@ uint16_t last_element = 14;	 //Last array element location of rx_transmit
 uint8_t *id_array[128];  // Array of pointers indicating location of any given ID in rx_transmit
 uint8_t timeout_count = 0; //Timeout counter
 
+//MQTT Responses
+uint8_t MQTT_CONACK[] = {0x20,0x02,0x00,0x00}; //Connection acknowlegement response
+uint8_t MQTT_PUBACK[] = {0x40,0x02,0x00,0x2A}; //Message published acknowlegement response
+uint8_t MQTT_PINGRESP[] = {0xD0, 0x00};		   // ping response
+
 // --- ATDE = "test.mosquitto.org"
 uint8_t XBEE_ATDE[] = {
     0x7E,0x00,0x1B,0x08,0x01,0x44,0x45,
@@ -60,22 +73,25 @@ uint8_t XBEE_ATDL[] = {
 };
 
 // --- ATMQTTCON
-uint8_t XBEE_MQTTCON[] = {
-    0x10, 0x10, 0x00, 0x04,
-    0x4D, 0x51, 0x54, 0x54,
-    0x04, 0x02, 0x00, 0x3C,
-    0x00, 0x04, 0x44, 0x49,
-    0x47, 0x49
+uint8_t MQTT_CONNECT_XBEE[] = {
+    0x10, 0x10,             // Fixed header (CONNECT, remaining length = 16)
+    0x00, 0x04,             // Protocol name length
+    0x4D, 0x51, 0x54, 0x54, // "MQTT"
+    0x04,                   // Protocol level 4 (MQTT 3.1.1)
+    0x02,                   // Connect flags: Clean Session = 1
+    0x00, 0x3C,             // Keepalive = 60 seconds
+    0x00, 0x04,             // Client ID length (4 bytes)
+    0x78, 0x62, 0x65, 0x65  // Client ID: "xbee"
 };
 
 // --- ATMQTTPUB="xbee/test","Hello STM32"
-uint8_t XBEE_MQTTPUB[] = {
-    0x30, 0x14, 0x00, 0x09,
-    0x78, 0x62, 0x65, 0x65,
-    0x2F, 0x74, 0x65, 0x73,
-    0x74, 0x48, 0x65, 0x6C,
-    0x6C, 0x6F, 0x58, 0x42,
-    0x65, 0x65
+uint8_t MQTT_PUBLISH_XBEE[] = {
+    0x30, 0x10,                   // PUBLISH, remaining length = 16
+    0x00, 0x09,                   // Topic length = 9
+    0x78, 0x62, 0x65, 0x65,       // 'x' 'b' 'e' 'e'
+    0x2F,                         // '/'
+    0x74, 0x65, 0x73, 0x74,       // 't' 'e' 's' 't'
+    0x48, 0x65, 0x6C, 0x6C, 0x6F  // Payload: "Hello"
 };
 
 //Enters AT Mode on XBee
@@ -87,18 +103,14 @@ void Enter_AT(){
 	HAL_UART_Transmit_IT(&huart5, ATAI, sizeof(ATAI));
 }
 
-void Send_MQTT(){
-//	HAL_UART_Transmit(&huart5, XBEE_ATDE, sizeof(XBEE_ATDE), HAL_MAX_DELAY);
-//	HAL_Delay(1000);
-//
-//	HAL_UART_Transmit(&huart5, XBEE_ATDL, sizeof(XBEE_ATDL), HAL_MAX_DELAY);
-//	HAL_Delay(1000);
 
-	HAL_UART_Transmit(&huart5, XBEE_MQTTCON, sizeof(XBEE_MQTTCON), HAL_MAX_DELAY);
-	HAL_Delay(500);
+void MQTT_Connect(){
+		HAL_UART_Transmit_IT(&huart5, MQTT_CONNECT_XBEE,sizeof(MQTT_CONNECT_XBEE));
+		HAL_Delay(5000);
+}
 
-	HAL_UART_Transmit(&huart5, XBEE_MQTTPUB, sizeof(XBEE_MQTTPUB), HAL_MAX_DELAY);
-	HAL_Delay(5000);
+void MQTT_Publish(){
+	HAL_UART_Transmit_IT(&huart5, MQTT_PUBLISH_XBEE,sizeof(MQTT_PUBLISH_XBEE));
 }
 
 void Send_ATVR_API(){
@@ -110,18 +122,18 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
 	HAL_UARTEx_ReceiveToIdle_IT(&huart5, uart_rx, sizeof(uart_rx));
 		switch(Size)
 		{
-//		case 4:
-//			if(!memcmp(uart_rx, MQTT_PUBACK, sizeof(MQTT_PUBACK))){
-//				FLAG.transmit_ready = true;
-//				timeout_count = 0;
-//			}
-//			else if(!memcmp(uart_rx, MQTT_CONACK, sizeof(MQTT_CONACK))){
-//				FLAG.connected_mqtt = true;
-//				FLAG.transmit_ready = true;
-//			}
-//			FLAG.at_ok = false;
-//			memset(uart_rx, 0x00, sizeof(uart_rx));
-//			break;
+		case 4:
+			if(!memcmp(uart_rx, MQTT_PUBACK, sizeof(MQTT_PUBACK))){
+				FLAG.transmit_ready = true;
+				timeout_count = 0;
+			}
+			else if(!memcmp(uart_rx, MQTT_CONACK, sizeof(MQTT_CONACK))){
+				FLAG.connected_mqtt = true;
+				FLAG.transmit_ready = true;
+			}
+			FLAG.at_ok = false;
+			memset(uart_rx, 0x00, sizeof(uart_rx));
+			break;
 		case 3:
 			if(!memcmp(uart_rx, AT_OK, sizeof(AT_OK)))
 				FLAG.at_ok = true;
@@ -174,4 +186,38 @@ void CheckInternet() {
 		}
 	}
 	HAL_UART_Transmit_IT(&huart5, AT_EXIT, sizeof(AT_EXIT));
+}
+
+void MQTT_Init(void)
+{
+    NetworkInit(&network);
+
+    MQTTClientInit(&client,
+                   &network,
+                   5000,        // command timeout
+                   sendbuf, sizeof(sendbuf),
+                   readbuf, sizeof(readbuf));
+}
+
+int MQTT_Connect_Paho(void)
+{
+    MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
+    data.clientID.cstring = MQTT_CLIENT_ID;
+    data.keepAliveInterval = MQTT_KEEPALIVE;
+    data.cleansession = 1;
+    data.MQTTVersion = 4;
+
+    return MQTTConnect(&client, &data);
+}
+
+int MQTT_Publish_Paho(const char* topic, const char* payload)
+{
+    MQTTMessage msg;
+    msg.qos = QOS0;
+    msg.retained = 0;
+    msg.dup = 0;
+    msg.payload = (void*)payload;
+    msg.payloadlen = strlen(payload);
+
+    return MQTTPublish(&client, topic, &msg);
 }

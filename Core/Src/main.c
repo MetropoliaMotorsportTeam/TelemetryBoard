@@ -112,7 +112,6 @@ int main(void)
   MX_UART5_Init();
   /* USER CODE BEGIN 2 */
   HAL_UARTEx_ReceiveToIdle_IT(&huart5, uart_rx, sizeof(uart_rx));
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -125,8 +124,16 @@ int main(void)
 //	  HAL_UART_Transmit_IT(&huart5, (uint8_t*)plusCmd, strlen(plusCmd));
 //	  HAL_Delay(1100);
 	  //CheckInternet();
-	  Send_MQTT();
+	  //Send_MQTT();
 	  //Send_ATVR_API();
+	  while (!FLAG.connected_mqtt){
+		  MQTT_Connect();
+	  }
+	  while (FLAG.transmit_ready){
+		  MQTT_Publish();
+		  HAL_Delay(1000);
+	  }
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

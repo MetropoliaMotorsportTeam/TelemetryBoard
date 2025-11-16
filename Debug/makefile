@@ -61,7 +61,7 @@ main-build: TelemetryBoard.elf secondary-outputs
 
 # Tool invocations
 TelemetryBoard.elf TelemetryBoard.map: $(OBJS) $(USER_OBJS) C:\GitHub\TelemetryBoard\STM32G484RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "TelemetryBoard.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\GitHub\TelemetryBoard\STM32G484RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TelemetryBoard.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "TelemetryBoard.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\GitHub\TelemetryBoard\STM32G484RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TelemetryBoard.map" -Wl,--gc-sections -static -L"C:\GitHub\TelemetryBoard\Middlewares\Paho\MQTTPacket\src" -L"C:\GitHub\TelemetryBoard\Middlewares\Paho\MQTTClient-C\src" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
