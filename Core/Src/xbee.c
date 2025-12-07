@@ -16,6 +16,7 @@
 
 sFlags FLAG;
 
+
 static Network network;
 static MQTTClient client;
 
@@ -111,6 +112,10 @@ void MQTT_Connect(){
 
 void MQTT_Publish(){
 	HAL_UART_Transmit_IT(&huart5, MQTT_PUBLISH_XBEE,sizeof(MQTT_PUBLISH_XBEE));
+}
+
+void UART_Send(uint8_t *packet, uint16_t length){
+	HAL_UART_Transmit_IT(&huart5, packet,length);
 }
 
 void Send_ATVR_API(){
@@ -220,4 +225,87 @@ int MQTT_Publish_Paho(const char* topic, const char* payload)
     msg.payloadlen = strlen(payload);
 
     return MQTTPublish(&client, topic, &msg);
+}
+
+int mqtt_encode_remaining_length(uint32_t len,
+                                        uint8_t *out,
+                                        size_t out_size)
+{
+    int i = 0;
+    do {
+        if (i >= (int)out_size) return -1;
+        uint8_t encoded = len % 128;
+        len /= 128;
+        if (len > 0) encoded |= 0x80;
+        out[i++] = encoded;
+    } while (len > 0);
+    return i;  // number of bytes used
+}
+
+//ChatGPT test function to convert CAN message to MQTT packet
+int build_mqtt_publish_from_can_raw(const CanFrame *frame,
+                                    const char *topic,
+                                    uint8_t *out_buf,
+                                    size_t out_buf_len)
+{
+    if (!frame || !topic || !out_buf) return -1;
+    if (frame->dlc > 8) return -2;
+
+    uint16_t topic_len = (uint16_t)strlen(topic);
+
+    // ---- Build payload: [ID(4) | DLC(1) | DATA(dlc)] ----
+    uint8_t payload[5 + 8];  // max 13 bytes
+    size_t payload_len = 0;
+
+    // CAN ID big-endian
+    payload[payload_len++] = (uint8_t)((frame->id >> 24) & 0xFF);
+    payload[payload_len++] = (uint8_t)((frame->id >> 16) & 0xFF);
+    payload[payload_len++] = (uint8_t)((frame->id >>  8) & 0xFF);
+    payload[payload_len++] = (uint8_t)( frame->id        & 0xFF);
+
+    // DLC
+    payload[payload_len++] = frame->dlc;
+
+    // Data bytes
+    for (uint8_t i = 0; i < frame->dlc; i++) {
+        payload[payload_len++] = frame->data[i];
+    }
+
+    // ---- MQTT Remaining Length = 2 (topic len) + topic + payload ----
+    uint32_t remaining_length = 2 + topic_len + (uint32_t)payload_len;
+
+    uint8_t rl_bytes[4];
+    int rl_len = mqtt_encode_remaining_length(remaining_length,
+                                              rl_bytes, sizeof(rl_bytes));
+    if (rl_len < 0) return -3;
+
+    // Total packet = 1 (fixed header) + rl_len + remaining_length
+    size_t total_len = 1 + rl_len + remaining_length;
+    if (total_len > out_buf_len) return -4;
+
+    size_t pos = 0;
+
+    // Fixed header: PUBLISH, DUP=0, QoS=0, RETAIN=0 => 0x30
+    out_buf[pos++] = 0x30;
+
+    // Remaining length
+    for (int i = 0; i < rl_len; i++) {
+        out_buf[pos++] = rl_bytes[i];
+    }
+
+    // Topic length (MSB, LSB)
+    out_buf[pos++] = (uint8_t)((topic_len >> 8) & 0xFF);
+    out_buf[pos++] = (uint8_t)( topic_len       & 0xFF);
+
+    // Topic string
+    memcpy(&out_buf[pos], topic, topic_len);
+    pos += topic_len;
+
+    // QoS 0 ⇒ no packet identifier
+
+    // Payload (raw CAN frame)
+    memcpy(&out_buf[pos], payload, payload_len);
+    pos += payload_len;
+
+    return (int)pos;  // length of MQTT packet
 }

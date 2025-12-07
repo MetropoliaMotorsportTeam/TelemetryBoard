@@ -126,11 +126,28 @@ int main(void)
 	  //CheckInternet();
 	  //Send_MQTT();
 	  //Send_ATVR_API();
+//	  while (!FLAG.connected_net){
+//		  CheckInternet();
+//	  }
 	  while (!FLAG.connected_mqtt){
 		  MQTT_Connect();
 	  }
 	  while (FLAG.transmit_ready){
-		  MQTT_Publish();
+		  CanFrame example_frame = {
+		      .id  = 0x100,
+		      .dlc = 8,
+		      .data = { 0x22, 0x60, 0x50, 0x4B, 0x82, 0x00, 0x00, 0x00 }
+		  };
+		  uint8_t tx_buf[128];
+
+		  int len = build_mqtt_publish_from_can_raw(
+		      &example_frame,
+		      "xbee/can",   // topic
+		      tx_buf,
+		      sizeof(tx_buf)
+		  );
+		  UART_Send(tx_buf, len);
+		  //MQTT_Publish();
 		  HAL_Delay(1000);
 	  }
 

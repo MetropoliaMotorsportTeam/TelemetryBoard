@@ -38,6 +38,12 @@ typedef struct sFlags {
     bool at_ok;
 }sFlags;
 
+typedef struct CanFrame {
+    uint32_t id;   // 11- or 29-bit CAN ID
+    uint8_t  dlc;  // number of valid data bytes (0–8)
+    uint8_t  data[8];
+}CanFrame;
+
 
 extern uint8_t AT_CONNECTED[]; //Connected to internet
 extern uint8_t AT_REG[]; //Registering to cellular network
@@ -78,6 +84,14 @@ void MQTT_Connect(void);
 int MQTT_Connect_Paho(void);
 void MQTT_Publish();
 int MQTT_Publish_Paho(const char* topic, const char* payload);
+int build_mqtt_publish_from_can_raw(const CanFrame *frame,
+                                    const char *topic,
+                                    uint8_t *out_buf,
+                                    size_t out_buf_len);
+int mqtt_encode_remaining_length(uint32_t len,
+                                        uint8_t *out,
+                                        size_t out_size);
+void UART_Send(uint8_t *packet, uint16_t length);
 
 
 
