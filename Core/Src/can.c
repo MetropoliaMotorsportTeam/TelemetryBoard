@@ -1,3 +1,10 @@
+/*
+ * can.c
+ *
+ *  Created on: Jan 25, 2026
+ *      Author: glebt
+ */
+
 #include "stm32g4xx.h"
 #include "main.h"
 #include "can.h"
@@ -35,7 +42,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
             }
             MessageBuffer[MessageBufferIndex].CanNbr = (hfdcan->Instance == FDCAN2) ? 1 : 2;
             MessageBufferIndex++;
-   
+
     }
 
     if (HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK)
@@ -66,4 +73,3 @@ void CanSend(uint8_t *TxData, uint32_t identifier, uint8_t CanBusNbr){
             break;
     }
 }
-
